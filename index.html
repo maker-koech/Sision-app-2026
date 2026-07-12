@@ -734,6 +734,9 @@ const SUBJECT_TEACHER_PINS = {
   "8888": { name: "Subject Teacher (edit me)", subjects: ["CRE"], classes: [
     {grade:"7",stream:""}, {grade:"8",stream:"East"}, {grade:"8",stream:"West"}, {grade:"9",stream:""}
   ]},
+  "9999": { name: "Subject Teacher (edit me)", subjects: ["C/A"], classes: [
+    {grade:"7",stream:""}, {grade:"8",stream:"East"}, {grade:"8",stream:"West"}, {grade:"9",stream:""}
+  ]},
 };
 
 // ─── YEAR ADVANCEMENT HELPERS ────────────────────────────────────────────────
@@ -1859,7 +1862,6 @@ function App() {
   const [prevTermMap, setPrevTermMap]       = useState({});
   const [saved, setSaved]                   = useState(false);
   const [opening, setOpening]               = useState(false);
-  const [namesFixed, setNamesFixed]         = useState(true); // hidden until confirmed NOT fixed yet
 
   // ── Subject Teacher Mode ────────────────────────────────────────────────
   const [pinInput, setPinInput]             = useState("");
@@ -2155,49 +2157,10 @@ function App() {
     return false;
   }
 
-  async function forceResetNamesFromMasterList() {
-    const split = isSplitGrade(grade);
-    const warn = split
-      ? "This will REPLACE the East and West class lists with the official master list names, and CLEAR any marks already entered for " + term + " " + year + " for this grade. Names typed elsewhere (other terms) are not affected. This cannot be undone. Continue?"
-      : "This will REPLACE the class list with the official master list names, and CLEAR any marks already entered for " + term + " " + year + " for this grade. Names typed elsewhere (other terms) are not affected. This cannot be undone. Continue?";
-    if (!window.confirm(warn)) return;
-    if (!GH) { alert("Not connected to GitHub. Connect first so the corrected names can be shared with everyone."); return; }
-    setOpening(true);
-    try {
-      if (split) {
-        const eastBase = (INITIAL_LEARNERS[grade]||{})["East"]||[];
-        const westBase = (INITIAL_LEARNERS[grade]||{})["West"]||[];
-        const e = eastBase.map(l=>({name:l.name, scores:blankScores()}));
-        const w = westBase.map(l=>({name:l.name, scores:blankScores()}));
-        await saveShared(learnersKey(grade,"East"), e.map(l=>({name:l.name})));
-        await saveShared(learnersKey(grade,"West"), w.map(l=>({name:l.name})));
-        await saveShared(storageKey(grade,"East",term,year), e.map(l=>({name:l.name,scores:l.scores})));
-        await saveShared(storageKey(grade,"West",term,year), w.map(l=>({name:l.name,scores:l.scores})));
-        setLearnersEast(e);
-        setLearnersWest(w);
-      } else {
-        const base = (INITIAL_LEARNERS[grade]||{})[""]||[];
-        const s = base.map(l=>({name:l.name, scores:blankScores()}));
-        await saveShared(learnersKey(grade,""), s.map(l=>({name:l.name})));
-        await saveShared(storageKey(grade,"",term,year), s.map(l=>({name:l.name,scores:l.scores})));
-        setLearnersSingle(s);
-      }
-      await saveShared(`namesFixedFlag:${grade}`, true);
-      setNamesFixed(true);
-      alert("Names have been reset from the master list and saved to GitHub. Everyone will see the corrected names next time they open or refresh the app. The Fix Names button will now disappear for everyone.");
-    } catch (err) {
-      alert("Something went wrong resetting the names. Please check your connection and try again.");
-    } finally {
-      setOpening(false);
-    }
-  }
-
   async function openClass() {
     setOpening(true);
     try {
       await loadDB(true); // always fetch fresh so other teachers' recent saves show up
-      const fixedFlag = await loadShared(`namesFixedFlag:${grade}`, false);
-      setNamesFixed(fixedFlag === true);
       const split = isSplitGrade(grade);
       if (split) {
         let e = await loadOneLearnersList(grade,"East");
@@ -2777,8 +2740,6 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
               value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
             <button style={{...S.ghostBtn,...(saved?{background:"#e8f5e9",color:"#2e7d32",borderColor:"#2e7d32"}:{})}}
               onClick={saveCurrentResults} disabled={saving}>{saving?"Saving…":(saved?"✓ Saved!":"💾 Save")}</button>
-            {!namesFixed && <button style={{...S.ghostBtn,background:"#fdecea",color:"#b71c1c",borderColor:"#b71c1c"}}
-              onClick={forceResetNamesFromMasterList} disabled={opening}>🔧 Fix Names from Master List</button>}
             {!showStreamTabs || stream==="East"
               ? <button style={S.ghostBtn} onClick={()=>setShowAddLearner(true)}>+ Learner</button>
               : <button style={S.ghostBtn} onClick={()=>setShowAddLearner(true)}>+ Learner</button>
