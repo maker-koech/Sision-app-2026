@@ -2195,6 +2195,7 @@ function App() {
   async function openClass() {
     setOpening(true);
     try {
+      await loadDB(true); // always fetch fresh so other teachers' recent saves show up
       const fixedFlag = await loadShared(`namesFixedFlag:${grade}`, false);
       setNamesFixed(fixedFlag === true);
       const split = isSplitGrade(grade);
